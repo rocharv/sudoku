@@ -133,9 +133,6 @@ defmodule SudokuTest do
     assert_raise ArgumentError, fn ->
       Sudoku.put(context[:board0], 0, 0, 10)
     end
-    assert_raise ArgumentError, fn ->
-      Sudoku.put(context[:board0], 0, 0, 0)
-    end
   end
 
   test "Sudoku valid_put? function test", context do
