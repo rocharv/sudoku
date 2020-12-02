@@ -84,7 +84,7 @@ defmodule Sudoku do
         valid_put?(sudoku, r, c, v), do: {r, c, v}
   end
 
-  def solve(%Sudoku{} = sudoku, pencil_marks \\ nil, first_sudoku \\ nil, first_mark \\ nil) do
+  def solve(%Sudoku{} = sudoku, pencil_marks \\ nil, first_sudoku \\ nil, acc_marks \\ []) do
     cond do
       full?(sudoku) ->
         IO.puts("full sudoku")
@@ -97,8 +97,7 @@ defmodule Sudoku do
         IO.inspect(pencil_marks, label: "cold run pencil marks", limit: 2000)
         IO.gets("waiting...")
         first_sudoku = sudoku
-        first_mark = List.first(pencil_marks)
-        solve(sudoku, pencil_marks, first_sudoku, first_mark)
+        solve(sudoku, pencil_marks, first_sudoku, acc_marks)
 
       pencil_marks == [] ->
         # end of one run
@@ -106,13 +105,14 @@ defmodule Sudoku do
         IO.inspect(first_sudoku, label: "first sudoku")
         IO.gets("waiting...")
 
-        new_pencil_marks = get_pencil_marks(first_sudoku) |> Enum.reject(fn m -> m == first_mark end)
+        IO.inspect(acc_marks, label: "first mark before")
+        new_pencil_marks = get_pencil_marks(first_sudoku) |> Enum.reject(fn m -> Enum.member?(acc_marks, m) end)
         IO.inspect(new_pencil_marks, label: "new first mark")
         IO.gets("waiting...")
 
-        {first_r, first_c, _} = first_mark
+        {first_r, first_c, _} = List.last(acc_marks)
         put(first_sudoku, first_r, first_c, 0)
-        |> solve(new_pencil_marks, first_sudoku, new_pencil_marks)
+        |> solve(new_pencil_marks, first_sudoku, acc_marks)
 
       true ->
         IO.puts("true")
@@ -129,7 +129,15 @@ defmodule Sudoku do
         IO.inspect(new_pencil_marks, label: "inside run renewed pencil marks", limit: 2000)
         IO.gets("waiting...")
 
-        solve(new_sudoku, new_pencil_marks, first_sudoku, first_mark)
+        IO.inspect(acc_marks, label: "added acc_marks")
+        IO.gets("waiting...")
+
+        cond do
+          tail != [] ->
+            solve(new_sudoku, new_pencil_marks, first_sudoku, acc_marks)
+          tail == [] ->
+            solve(new_sudoku, new_pencil_marks, first_sudoku, [head] ++ acc_marks)
+        end
     end
   end
 
