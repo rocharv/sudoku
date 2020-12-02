@@ -56,7 +56,7 @@ defmodule Sudoku do
         for r <- grid_fst_row..grid_lst_row,
             c <- grid_fst_col..grid_lst_col do
               {r, c}
-            end
+        end
         |> Enum.all?(fn {r, c} -> get(sudoku, r, c) != value end)
     end
   end

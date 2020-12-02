@@ -156,6 +156,9 @@ defmodule SudokuTest do
     assert Sudoku.valid_put?(context[:board1], 4, 4, 8) == false
     assert Sudoku.valid_put?(context[:board1], 4, 4, 9) == true
 
+    assert Sudoku.valid_put?(context[:board1], 6, 2, 3) == false
+    assert Sudoku.valid_put?(context[:board1], 6, 4, 7) == false
+
     assert_raise ArgumentError, fn ->
       Sudoku.valid_put?(context[:board1], 0, 9, 1)
     end
