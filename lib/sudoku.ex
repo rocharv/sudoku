@@ -67,25 +67,31 @@ defmodule Sudoku do
     |> Enum.all?(fn e -> e != 0 end)
   end
   def next_blank(%Sudoku{size: size} = sudoku, row, col) do
+    position = size * row + col
+    |> IO.inspect(label: "position in board")
     for r <- 0..size - 1,
-        c <- 0..size - 1,
-        r >= row and c >= col do
+        c <- 0..size - 1 do
         {r, c}
     end
+    |> IO.inspect(label: "all positions")
+    |> Enum.filter(fn {r, c} -> size * r + c > position end)
+    |> IO.inspect(label: "all greater positions")
     |> Enum.find(nil, fn {r, c} -> get(sudoku, r, c) == 0 end)
   end
 
-  def previous_cell(%Sudoku{size: size}, row, col) do
-    cond do
-        col > 0 ->
-          {row, col - 1}
+  def previous_blank(%Sudoku{size: size} = first_sudoku, row, col) do
+    position = size * row + col
+    |> IO.inspect(label: "position in board")
 
-        row > 0 and col == 0 ->
-          {row - 1, size - 1}
-
-        true ->
-          raise ArgumentError, message: "invalid row and/or column argument"
+    for r <- 0..size - 1,
+        c <- 0..size - 1 do
+        {r, c}
     end
+    |> IO.inspect(label: "all positions")
+    |> Enum.filter(fn {r, c} -> size * r + c < position end)
+    |> Enum.reverse()
+    |> IO.inspect(label: "all greater positions (reverse order)")
+    |> Enum.find(nil, fn {r, c} -> get(first_sudoku, r, c) == 0 end)
   end
 
 # def solucao_sudoku():
@@ -95,11 +101,18 @@ defmodule Sudoku do
 # 4. Escolha uma casa qualquer. Para cada possibilidade (das pencil marks) da casa escolhida:
 # 4.1. preencha a casa com a possibilidade.
 # 4.2. chame solucao_sudoku() recursivamente.
-  def solve(%Sudoku{size: size} = sudoku, row \\ 0, col \\ 0, value \\ 1) do
-
+  def solve(%Sudoku{size: size} = sudoku, row \\ 0, col \\ 0, value \\ 1, first_sudoku \\ nil) do
     {next_row, next_col} = next_blank(sudoku, row, col)
 
     cond do
+      first_sudoku == nil ->
+        first_sudoku = sudoku
+
+        IO.puts("First sudoku.")
+        first_sudoku
+        |> print()
+        |> solve(0, 0, 1, first_sudoku)
+
       full?(sudoku) ->
         IO.puts("Solved!")
         print(sudoku)
@@ -109,14 +122,14 @@ defmodule Sudoku do
         # Update sudoku removing previous insertion, and solve for next value
         IO.puts("Insertion failed (for all values) in (#{row}, #{col})")
 
-        {previous_row, previous_col} = previous_cell(sudoku, row, col)
+        {previous_row, previous_col} = previous_blank(first_sudoku, row, col)
         previous_cell_value = get(sudoku, previous_row, previous_col)
         IO.puts("Deleting previous cell (#{previous_row}, #{previous_col}, #{previous_cell_value}) and going back")
 
         sudoku
         |> put(previous_row, previous_col, 0)
         |> print()
-        |> solve(previous_row, previous_col, previous_cell_value + 1)
+        |> solve(previous_row, previous_col, previous_cell_value + 1, first_sudoku)
 
       valid_put?(sudoku, next_row, next_col, value) ->
         # Temporally accepted insertion
@@ -125,16 +138,16 @@ defmodule Sudoku do
 
         put(sudoku, next_row, next_col, value)
         |> print()
-        |> solve(next_row, next_col, 1)
+        |> solve(next_row, next_col, 1, first_sudoku)
 
-        true ->
+      true ->
           # Insertion not accepted
           # Update sudoku with new insertion try for this coordinate, and solve for next value
           IO.puts("Insertion not accepted (#{next_row}, #{next_col}, #{value})")
 
           put(sudoku, next_row, next_col, 0)
           |> print()
-          |> solve(row, col, value + 1)
+          |> solve(next_row, next_col, value + 1, first_sudoku)
     end
   end
 
