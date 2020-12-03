@@ -61,12 +61,31 @@ defmodule Sudoku do
     end
   end
 
-  def full?(%Sudoku{size: size} = sudoku) do
+  def full?(%Sudoku{board: board}) do
+    board
+    |> Tuple.to_list()
+    |> Enum.all?(fn e -> e != 0 end)
+  end
+  def next_blank(%Sudoku{size: size} = sudoku, row, col) do
     for r <- 0..size - 1,
-        c <- 0..size - 1 do
-      {r, c}
+        c <- 0..size - 1,
+        r >= row and c >= col do
+        {r, c}
     end
-    |> Enum.all?(fn {r, c} -> get(sudoku, r, c) != 0 end)
+    |> Enum.find(nil, fn {r, c} -> get(sudoku, r, c) == 0 end)
+  end
+
+  def previous_cell(%Sudoku{size: size}, row, col) do
+    cond do
+        col > 0 ->
+          {row, col - 1}
+
+        row > 0 and col == 0 ->
+          {row - 1, size - 1}
+
+        true ->
+          raise ArgumentError, message: "invalid row and/or column argument"
+    end
   end
 
 # def solucao_sudoku():
@@ -76,79 +95,59 @@ defmodule Sudoku do
 # 4. Escolha uma casa qualquer. Para cada possibilidade (das pencil marks) da casa escolhida:
 # 4.1. preencha a casa com a possibilidade.
 # 4.2. chame solucao_sudoku() recursivamente.
+  def solve(%Sudoku{size: size} = sudoku, row \\ 0, col \\ 0, value \\ 1) do
 
-  def get_pencil_marks(%Sudoku{size: size} = sudoku) do
-    for r <- 0..size - 1,
-        c <- 0..size - 1,
-        v <- 1..size,
-        valid_put?(sudoku, r, c, v), do: {r, c, v}
-  end
+    {next_row, next_col} = next_blank(sudoku, row, col)
 
-  def solve(%Sudoku{} = sudoku, pencil_marks \\ nil, first_sudoku \\ nil, acc_marks \\ []) do
     cond do
       full?(sudoku) ->
-        IO.puts("full sudoku")
+        IO.puts("Solved!")
+        print(sudoku)
+
+      value > size ->
+        # Insertion failed (tried all values)!
+        # Update sudoku removing previous insertion, and solve for next value
+        IO.puts("Insertion failed (for all values) in (#{row}, #{col})")
+
+        {previous_row, previous_col} = previous_cell(sudoku, row, col)
+        previous_cell_value = get(sudoku, previous_row, previous_col)
+        IO.puts("Deleting previous cell (#{previous_row}, #{previous_col}, #{previous_cell_value}) and going back")
+
         sudoku
+        |> put(previous_row, previous_col, 0)
+        |> print()
+        |> solve(previous_row, previous_col, previous_cell_value + 1)
 
-      pencil_marks == nil ->
-        # first run: build first pencil_marks, store first sudoku and firstmark called
-        IO.puts("pencil marks == nil")
-        pencil_marks = get_pencil_marks(sudoku)
-        IO.inspect(pencil_marks, label: "cold run pencil marks", limit: 2000)
-        IO.gets("waiting...")
-        first_sudoku = sudoku
-        solve(sudoku, pencil_marks, first_sudoku, acc_marks)
+      valid_put?(sudoku, next_row, next_col, value) ->
+        # Temporally accepted insertion
+        # Update sudoku with new insertion, and solve for next value
+        IO.puts("Temporally accepted insertion (#{next_row}, #{next_col}, #{value})")
 
-      pencil_marks == [] ->
-        # end of one run
-        IO.puts("pencil marks == []")
-        IO.inspect(first_sudoku, label: "first sudoku")
-        IO.gets("waiting...")
+        put(sudoku, next_row, next_col, value)
+        |> print()
+        |> solve(next_row, next_col, 1)
 
-        IO.inspect(acc_marks, label: "first mark before")
-        new_pencil_marks = get_pencil_marks(first_sudoku) |> Enum.reject(fn m -> Enum.member?(acc_marks, m) end)
-        IO.inspect(new_pencil_marks, label: "new first mark")
-        IO.gets("waiting...")
+        true ->
+          # Insertion not accepted
+          # Update sudoku with new insertion try for this coordinate, and solve for next value
+          IO.puts("Insertion not accepted (#{next_row}, #{next_col}, #{value})")
 
-        {first_r, first_c, _} = List.last(acc_marks)
-        put(first_sudoku, first_r, first_c, 0)
-        |> solve(new_pencil_marks, first_sudoku, acc_marks)
-
-      true ->
-        IO.puts("true")
-        [head | tail] = pencil_marks
-
-        {first_r, first_c, first_v} = head
-        IO.puts("Writing: row = #{first_r}, col = #{first_c}, value = #{first_v}")
-        new_sudoku = put(sudoku, first_r, first_c, first_v)
-        print(new_sudoku)
-        IO.gets("waiting...")
-
-        # Update remaining pencil marks, considering the new input
-        new_pencil_marks = Enum.filter(tail, fn {r, c, v} -> valid_put?(new_sudoku, r, c, v) end)
-        IO.inspect(new_pencil_marks, label: "inside run renewed pencil marks", limit: 2000)
-        IO.gets("waiting...")
-
-        IO.inspect(acc_marks, label: "added acc_marks")
-        IO.gets("waiting...")
-
-        cond do
-          tail != [] ->
-            solve(new_sudoku, new_pencil_marks, first_sudoku, acc_marks)
-          tail == [] ->
-            solve(new_sudoku, new_pencil_marks, first_sudoku, [head] ++ acc_marks)
-        end
+          put(sudoku, next_row, next_col, 0)
+          |> print()
+          |> solve(row, col, value + 1)
     end
   end
 
-  def print(%Sudoku{board: board, size: size}) do
+  def print(%Sudoku{board: board, size: size} = sudoku, return_board? \\ true) do
     board
     |> Tuple.to_list()
     |> Enum.chunk_every(size)
     |> Enum.map(fn l -> Enum.join(l, ", ") |> IO.puts() end)
+
+    if return_board?, do: sudoku
   end
 
-  def s() do
+  def b() do
     %Sudoku{
       board: {
         0, 0, 3, 6, 0, 0, 4, 0, 0,

@@ -190,9 +190,4 @@ defmodule SudokuTest do
       6, 3, 1, 7, 4, 8, 2, 5, 9
       """
   end
-
-  test "Sudoku full? function test", context do
-    assert Sudoku.full?(context[:board0]) == true
-    assert Sudoku.full?(context[:board1]) == false
-  end
 end
