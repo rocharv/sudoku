@@ -89,16 +89,8 @@ defmodule Sudoku do
     |> Enum.find(nil, fn {r, c} -> get(first_sudoku, r, c) == 0 end)
   end
 
-# def solucao_sudoku():
-# 1. Se estiver com tudo preenchido, imprima a solução e termine execução.
-# 2. Apague todas as pencil marks do que não for possível por conta de linhas/colunas/grupos já preenchidos.
-# 3. Se tiver casa não preenchida e sem nenhuma possibilidade, saia da rotina.
-# 4. Escolha uma casa qualquer. Para cada possibilidade (das pencil marks) da casa escolhida:
-# 4.1. preencha a casa com a possibilidade.
-# 4.2. chame solucao_sudoku() recursivamente.
-
   def solve(%Sudoku{} = sudoku) do
-    IO.puts("First sudoku.")
+    IO.puts("Solving:")
     sudoku
     |> print()
     |> solve(0, 0, 1, sudoku)
@@ -110,40 +102,31 @@ defmodule Sudoku do
       value > size ->
         # Insertion failed (tried all values)!
         # Update sudoku removing previous insertion, and solve for next value
-        IO.puts("Insertion failed (for all values) in (#{row}, #{col})")
 
         {previous_row, previous_col} = previous_blank(first_sudoku, row, col)
         previous_cell_value = get(sudoku, previous_row, previous_col)
-        IO.puts("Changing previous cell (#{previous_row}, #{previous_col}, #{previous_cell_value}) and backtracking")
 
         sudoku
         |> put(previous_row, previous_col, 0)
-        |> print()
         |> solve(previous_row, previous_col, previous_cell_value + 1, first_sudoku)
 
       valid_put?(sudoku, row, col, value) ->
         # Temporally accepted insertion
         # Update sudoku with new insertion, and solve for next value
-        IO.puts("Temporally accepted insertion (#{row}, #{col}, #{value})")
-
         if next_blank(sudoku, row, col) != nil do
           {next_row, next_col} = next_blank(sudoku, row, col)
           put(sudoku, row, col, value)
-          |> print()
           |> solve(next_row, next_col, 1, first_sudoku)
         else
-          IO.puts("Solved!")
+          IO.puts("Solution:")
           put(sudoku, row, col, value)
-          |> print(false)
+          |>print(false)
         end
 
       true ->
         # Insertion not accepted
         # Update sudoku with new insertion try for this coordinate, and solve for next value
-        IO.puts("Insertion not accepted (#{row}, #{col}, #{value})")
-
         put(sudoku, row, col, 0)
-        |> print()
         |> solve(row, col, value + 1, first_sudoku)
     end
   end
@@ -159,7 +142,7 @@ defmodule Sudoku do
     if return_board?, do: sudoku
   end
 
-  def b() do
+  def easy_board() do
     %Sudoku{
       board: {
         0, 0, 3, 6, 0, 0, 4, 0, 0,
@@ -175,20 +158,20 @@ defmodule Sudoku do
       size: 9
     }
   end
-  def s0() do
+  def hard_board() do
     %Sudoku{
       board: {
-        7, 4, 3, 9, 5, 1, 6, 8, 2,
-        1, 6, 2, 4, 8, 7, 3, 9, 5,
-        9, 5, 8, 6, 3, 2, 7, 1, 4,
-        2, 1, 9, 8, 7, 3, 5, 4, 6,
-        3, 7, 4, 5, 6, 9, 1, 2, 8,
-        5, 8, 6, 1, 2, 4, 9, 7, 3,
-        4, 9, 5, 2, 1, 6, 8, 3, 7,
-        8, 2, 7, 3, 9, 5, 4, 6, 1,
-        6, 3, 1, 7, 4, 8, 2, 5, 9},
-        grid_size: 3,
-        size: 9
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 3, 0, 8, 5,
+        0, 0, 1, 0, 2, 0, 0, 0, 0,
+        0, 0, 0, 5, 0, 7, 0, 0, 0,
+        0, 0, 4, 0, 0, 0, 1, 0, 0,
+        0, 9, 0, 0, 0, 0, 0, 0, 0,
+        5, 0, 0, 0, 0, 0, 0, 7, 3,
+        0, 0, 2, 0, 1, 0, 0, 0, 0,
+        0, 0, 0, 0, 4, 0, 0, 0, 9},
+      grid_size: 3,
+      size: 9
     }
   end
 end

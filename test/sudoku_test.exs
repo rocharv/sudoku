@@ -136,6 +136,7 @@ defmodule SudokuTest do
   end
 
   test "Sudoku valid_put? function test", context do
+    IO.puts("tessste")
     assert Sudoku.valid_put?(context[:board1], 0, 0, 1) == true
     assert Sudoku.valid_put?(context[:board1], 0, 0, 2) == false
     assert Sudoku.valid_put?(context[:board1], 0, 0, 3) == false
