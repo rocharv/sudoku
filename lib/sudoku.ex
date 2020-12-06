@@ -131,12 +131,25 @@ defmodule Sudoku do
     end
   end
 
-  def print(%Sudoku{board: board, size: size} = sudoku, return_board? \\ true) do
-    board
-    |> Tuple.to_list()
-    |> Enum.chunk_every(size)
-    |> Enum.map(fn l -> Enum.join(l, ", ") |> IO.puts() end)
-
+  def print(%Sudoku{board: board, grid_size: grid_size, size: size} = sudoku, return_board? \\ true) do
+    for x <- 1..size * size do
+      {x, elem(board, x - 1)}
+    end
+    |> Enum.map(fn {x, y} ->
+      cond do
+        rem(x, grid_size) == 0 and rem(x, grid_size * grid_size) != 0 ->
+          IO.write("#{y} |")
+        rem(x, grid_size * grid_size) == 0 and rem(x, grid_size * grid_size * grid_size) != 0 ->
+          IO.write("#{y}\n")
+        rem(x, grid_size * grid_size * grid_size) == 0 and x != grid_size * grid_size * grid_size * grid_size ->
+          IO.write("#{y}\n")
+          IO.puts(
+            String.duplicate("-", grid_size * 2) <>
+            String.duplicate("+" <> String.duplicate("-", grid_size * 2), grid_size - 1))
+        true ->
+          IO.write("#{y} ")
+        end
+    end)
     #IO.gets("Press <ENTER> to continue.")
 
     if return_board?, do: sudoku
