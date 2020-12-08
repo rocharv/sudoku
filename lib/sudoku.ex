@@ -120,7 +120,7 @@ defmodule Sudoku do
         else
           IO.puts("Solution:")
           put(sudoku, row, col, value)
-          |>print(false)
+          |>print()
         end
 
       true ->
@@ -133,7 +133,7 @@ defmodule Sudoku do
 
   def print(%Sudoku{board: board, grid_size: grid_size, size: size} = sudoku, return_board? \\ true) do
     for x <- 1..size * size do
-      {x, elem(board, x - 1)}
+      {x, elem(board, x - 1) |> Integer.to_string |> String.pad_leading(String.length("#{size}"))}
     end
     |> Enum.map(fn {x, y} ->
       cond do
@@ -144,13 +144,14 @@ defmodule Sudoku do
         rem(x, grid_size * grid_size * grid_size) == 0 and x != grid_size * grid_size * grid_size * grid_size ->
           IO.write("#{y}\n")
           IO.puts(
-            String.duplicate("-", grid_size * 2) <>
-            String.duplicate("+" <> String.duplicate("-", grid_size * 2), grid_size - 1))
+            String.duplicate("-", grid_size * (String.length("#{size}") + 1)) <>
+            String.duplicate("+" <> String.duplicate("-", grid_size * (String.length("#{size}") + 1)), grid_size - 1))
         true ->
           IO.write("#{y} ")
         end
     end)
-    #IO.gets("Press <ENTER> to continue.")
+
+    IO.write("\n")
 
     if return_board?, do: sudoku
   end
