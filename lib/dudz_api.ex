@@ -35,6 +35,8 @@ defmodule DudzApi do
   end
 
   def run() do
-    check("https://dudz.com.br/cgi-bin/sudoku.cgi", 9, 10)
+      Enum.map(1..100, fn _x ->
+        spawn(fn -> check("https://dudz.com.br/cgi-bin/sudoku.cgi", 9, 10) end)
+      end)
   end
 end
