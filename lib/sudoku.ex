@@ -9,7 +9,7 @@ defmodule Sudoku do
 
   def get(%Sudoku{board: board, size: size}, row, col) do
     cond do
-      row < 0 or col < 0 or row >= size or col >= size ->
+      !is_integer(row) or !is_integer(col) or row < 0 or col < 0 or row >= size or col >= size ->
         raise ArgumentError, message: "invalid row and/or column argument"
 
       true ->
@@ -19,7 +19,7 @@ defmodule Sudoku do
 
   def put(%Sudoku{board: board, size: size} = sudoku, row, col, value) do
     cond do
-      row < 0 or col < 0 or row >= size or col >= size or value < 0 or value > size ->
+      !is_integer(row) or !is_integer(col) or !is_integer(value) or row < 0 or col < 0 or row >= size or col >= size or value < 0 or value > size ->
         raise ArgumentError, message: "invalid row, column and/or value argument"
 
       true ->
@@ -32,9 +32,9 @@ defmodule Sudoku do
     cond do
       # invalid value
       value < 1 or value > size ->
-        raise ArgumentError, message: "invalid row and/or column argument"
+        raise ArgumentError, message: "invalid value argument"
 
-      # non-empty cell
+      # empty cell validation
       get(sudoku, row, col) != 0 ->
         false
 
@@ -61,11 +61,14 @@ defmodule Sudoku do
     end
   end
 
-  def full?(%Sudoku{board: board}) do
-    board
-    |> Tuple.to_list()
-    |> Enum.all?(fn e -> e != 0 end)
+  def valid_sudoku?(%Sudoku{size: size} = sudoku) do
+    for r <- 0..size - 1,
+        c <- 0..size - 1 do
+        {r, c, get(sudoku, r, c)}
+    end
+    |> Enum.all?(fn {r, c, v} -> v != 0 and valid_put?(put(sudoku, r, c, 0), r, c, v) end)
   end
+
   def next_blank(%Sudoku{size: size} = sudoku, row, col) do
     position = size * row + col
 
@@ -115,6 +118,7 @@ defmodule Sudoku do
         # Update sudoku with new insertion, and solve for next value
         if next_blank(sudoku, row, col) != nil do
           {next_row, next_col} = next_blank(sudoku, row, col)
+
           put(sudoku, row, col, value)
           |> solve(next_row, next_col, 1, first_sudoku)
         else
@@ -131,6 +135,35 @@ defmodule Sudoku do
     end
   end
 
+  def random(sudoku_size, non_empty_cells) do
+    cond do
+      !is_integer(non_empty_cells) or non_empty_cells < 1 ->
+        raise ArgumentError, message: "invalid number of non-empty cells argument"
+
+      true ->
+        new(%Sudoku{size: sudoku_size})
+        |> random(non_empty_cells, 1)
+    end
+  end
+
+  def random(%Sudoku{size: size} = sudoku, non_empty_cells, iteration) do
+    r = Enum.random(0..size - 1)
+    c = Enum.random(0..size - 1)
+    v = Enum.random(1..size - 1)
+
+    cond do
+      iteration <= non_empty_cells and valid_put?(sudoku, r, c, v) ->
+        put(sudoku, r, c, v)
+        |>random(non_empty_cells, iteration + 1)
+
+      iteration <= non_empty_cells ->
+       random(sudoku, non_empty_cells, iteration)
+
+      true ->
+        sudoku
+    end
+
+  end
   def print(%Sudoku{board: board, grid_size: grid_size, size: size} = sudoku, return_board? \\ true) do
     for x <- 1..size * size do
       {x, elem(board, x - 1) |> Integer.to_string |> String.pad_leading(String.length("#{size}"))}
@@ -139,13 +172,16 @@ defmodule Sudoku do
       cond do
         rem(x, grid_size) == 0 and rem(x, grid_size * grid_size) != 0 ->
           IO.write("#{y} |")
+
         rem(x, grid_size * grid_size) == 0 and rem(x, grid_size * grid_size * grid_size) != 0 ->
           IO.write("#{y}\n")
+
         rem(x, grid_size * grid_size * grid_size) == 0 and x != grid_size * grid_size * grid_size * grid_size ->
           IO.write("#{y}\n")
           IO.puts(
             String.duplicate("-", grid_size * (String.length("#{size}") + 1)) <>
             String.duplicate("+" <> String.duplicate("-", grid_size * (String.length("#{size}") + 1)), grid_size - 1))
+
         true ->
           IO.write("#{y} ")
         end
@@ -154,38 +190,5 @@ defmodule Sudoku do
     IO.write("\n")
 
     if return_board?, do: sudoku
-  end
-
-  def easy_board() do
-    %Sudoku{
-      board: {
-        0, 0, 3, 6, 0, 0, 4, 0, 0,
-        6, 0, 0, 0, 8, 0, 0, 2, 0,
-        0, 9, 0, 0, 0, 5, 0, 0, 7,
-        0, 0, 4, 0, 3, 0, 0, 0, 0,
-        0, 0, 0, 2, 0, 0, 6, 0, 0,
-        2, 0, 0, 0, 0, 7, 0, 0, 5,
-        7, 0, 0, 0, 0, 0, 0, 1, 0,
-        0, 0, 6, 8, 0, 0, 0, 0, 0,
-        0, 1, 0, 0, 0, 9, 2, 0, 0},
-      grid_size: 3,
-      size: 9
-    }
-  end
-  def hard_board() do
-    %Sudoku{
-      board: {
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 3, 0, 8, 5,
-        0, 0, 1, 0, 2, 0, 0, 0, 0,
-        0, 0, 0, 5, 0, 7, 0, 0, 0,
-        0, 0, 4, 0, 0, 0, 1, 0, 0,
-        0, 9, 0, 0, 0, 0, 0, 0, 0,
-        5, 0, 0, 0, 0, 0, 0, 7, 3,
-        0, 0, 2, 0, 1, 0, 0, 0, 0,
-        0, 0, 0, 0, 4, 0, 0, 0, 9},
-      grid_size: 3,
-      size: 9
-    }
   end
 end
